@@ -2,22 +2,19 @@ var express = require('express');
 var router = express.Router();
 var path = require('path');
 var fs = require('fs');
+var randomWords = require('random-words');
 
-/* GET home page. */
+var contentFolder = './public/content/editorContent/';
+var defaultContentFolder = './public/content/defaultEditorContent/';
 
-router.get('/', function(req, res, next) {
+function redirectToNewEditorCreater(req, res, next) {
+  var codeEditorInstanceId = randomWords({exactly:1, wordsPerString:3, separator:'-'});
+  res.redirect('/edit/' + codeEditorInstanceId);
+};
 
-  var defaultHtmlText = fs.readFileSync('./public/content/default/index.html', 'utf8');
-  var defaultCssText = fs.readFileSync('./public/content/default/index.css', 'utf8');
-  var defaultJavascriptText = fs.readFileSync('./public/content/default/index.js', 'utf8');
-
-  res.render('index', { 
-    htmlText: defaultHtmlText,
-    cssText: defaultCssText,
-    javascriptText: defaultJavascriptText
-  });
-
-});
+router.get("/", redirectToNewEditorCreater);
+router.get("/edit", redirectToNewEditorCreater);
+router.get("/view", redirectToNewEditorCreater);
 
 /* Save client edits via Ajax. */
 
@@ -34,7 +31,7 @@ router.post('/save/', function(req, res, next) {
 
   codeEditorInstanceId = req.body.codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, "").substring(0,255);
   
-  var dir = './public/content/'+codeEditorInstanceId;
+  var dir = contentFolder + codeEditorInstanceId + '/';
 
   if (!fs.existsSync(dir)) {
     fs.mkdir(dir, err => {})
@@ -42,9 +39,9 @@ router.post('/save/', function(req, res, next) {
 
   // var resultText = '\<html\>\<head\>\<style\>' + req.body.cssText + '\<\/style\>\<\/head\>\<body\>' + req.body.htmlText + '\<script\>' + req.body.javascriptText + '\<\/script\>\<\/body\>\</html\>';
 
-  fs.writeFileSync(dir + '/index.html', req.body.htmlText, 'utf-8');
-  fs.writeFileSync(dir + '/index.css', req.body.cssText, 'utf-8');
-  fs.writeFileSync(dir + '/index.js', req.body.javascriptText, 'utf-8');
+  fs.writeFileSync(dir + 'index.html', req.body.htmlText, 'utf-8');
+  fs.writeFileSync(dir + 'index.css', req.body.cssText, 'utf-8');
+  fs.writeFileSync(dir + 'index.js', req.body.javascriptText, 'utf-8');
 
   res.end();
 });
@@ -62,7 +59,7 @@ router.get('/view/:codeEditorInstanceId/', function(req, res) {
     codeEditorInstanceId = codeEditorInstanceIdSafe;
   }
 
-  var dir = './public/content/' + codeEditorInstanceId;
+  var dir = contentFolder + codeEditorInstanceId;
   if (!fs.existsSync(dir)) {
     res.redirect('/edit/' + codeEditorInstanceIdSafe);
   } else {
@@ -70,17 +67,17 @@ router.get('/view/:codeEditorInstanceId/', function(req, res) {
     // res.sendFile(path.join(__dirname, dir, 'index.html'));
 
     try {
-      htmlText = fs.readFileSync('./public/content/' + codeEditorInstanceId + '/index.html', 'utf8');
+      htmlText = fs.readFileSync(contentFolder + codeEditorInstanceId + 'index.html', 'utf8');
     } catch (err) {
       var htmlText = '';
     }
     try {
-      cssText = fs.readFileSync('./public/content/' + codeEditorInstanceId + '/index.css', 'utf8');
+      cssText = fs.readFileSync(contentFolder + codeEditorInstanceId + 'index.css', 'utf8');
     } catch (err) {
       var cssText = '';
     }
     try {
-      javascriptText = fs.readFileSync('./public/content/' + codeEditorInstanceId + '/index.js', 'utf8');
+      javascriptText = fs.readFileSync(contentFolder + codeEditorInstanceId + 'index.js', 'utf8');
     } catch (err) {
       var javascriptText = '';
     }
@@ -104,25 +101,25 @@ router.get('/edit/:codeEditorInstanceId/', function (req, res) {
     codeEditorInstanceId = codeEditorInstanceIdSafe;
   }
 
-  var dir = './public/content/'+codeEditorInstanceId;
+  var dir = contentFolder + codeEditorInstanceId;
   if (!fs.existsSync(dir)) {
     fs.mkdir(dir, err => {})
   }
 
   try {
-    htmlText = fs.readFileSync('./public/content/' + codeEditorInstanceId + '/index.html', 'utf8');
+    htmlText = fs.readFileSync(contentFolder + codeEditorInstanceId + 'index.html', 'utf8');
   } catch (err) {
-    var htmlText = fs.readFileSync('./public/content/default/index.html', 'utf8');
+    var htmlText = fs.readFileSync(defaultContentFolder + 'index.html', 'utf8');
   }
   try {
-    cssText = fs.readFileSync('./public/content/' + codeEditorInstanceId + '/index.css', 'utf8');
+    cssText = fs.readFileSync(contentFolder + codeEditorInstanceId + 'index.css', 'utf8');
   } catch (err) {
-    var cssText = fs.readFileSync('./public/content/default/index.css', 'utf8');
+    var cssText = fs.readFileSync(defaultContentFolder + 'index.css', 'utf8');
   }
   try {
-    javascriptText = fs.readFileSync('./public/content/' + codeEditorInstanceId + '/index.js', 'utf8');
+    javascriptText = fs.readFileSync(contentFolder + codeEditorInstanceId + 'index.js', 'utf8');
   } catch (err) {
-    var javascriptText = fs.readFileSync('./public/content/default/index.js', 'utf8');
+    var javascriptText = fs.readFileSync(defaultContentFolder + 'index.js', 'utf8');
   }
 
   res.render('index', { 
