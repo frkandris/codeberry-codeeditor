@@ -1,0 +1,178 @@
+<div class="container-fluid fullHeight">
+  <div class="row no-gutters fullHeight">
+    <div id="columnForHTMLEditor" class="col-sm">
+      <div>HTML</div>
+      <textarea id="editorForHTML">{{htmlText}}</textarea>
+    </div>
+    <div id="columnForCSSEditor" class="col-sm">
+      <div>CSS</div>
+      <textarea id="editorForCSS">{{cssText}}</textarea>
+    </div>
+    <div id="columnForJSEditor" class="col-sm">
+      <div>JavaScript</div>
+      <textarea id="editorForJS">{{javascriptText}}</textarea>
+    </div>
+    <div id="columnForConsole" class="col-sm">
+      <div>Console</div>
+      <div id="log"></div>
+    </div>
+    <div id="columnForResult" class="col-sm">
+      <div>Result</div>
+      <iframe id="resultIFrame"></iframe>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+
+  function getSearchParameters() {
+    var prmstr = window.location.search.substr(1);
+    return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+  }
+
+  function transformToAssocArray(prmstr) {
+    var params = {};
+    var prmarr = prmstr.split("&");
+    for (var i = 0; i < prmarr.length; i++) {
+      var tmparr = prmarr[i].split("=");
+      params[tmparr[0]] = tmparr[1];
+    }
+    return params;
+  }
+
+  var params = getSearchParameters();
+
+  if (params.html == 0) {
+    $("#columnForHTMLEditor").hide();
+  }
+  if (params.css == 0) {
+    $("#columnForCSSEditor").hide();
+  }
+  if (params.js == 0) {
+    $("#columnForJSEditor").hide();
+  }
+  if (params.console == 0) {
+    $("#columnForConsole").hide();
+  }
+
+</script>
+
+<input type="hidden" name="codeEditorInstanceId" value="{{codeEditorInstanceId}}" />
+
+<script>
+  var editorInstanceForHTML = CodeMirror.fromTextArea(editorForHTML, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: "railscasts",
+    mode: "text/html"
+  });
+  editorInstanceForHTML.on('change', function () {
+    localStorage.setItem("htmlText", editorInstanceForHTML.getValue());
+    refreshResultIFrame();
+  });
+
+  var editorInstanceForCSS = CodeMirror.fromTextArea(editorForCSS, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: "railscasts",
+    mode: "css"
+  });
+  editorInstanceForCSS.on('change', function () {
+    localStorage.setItem("cssText", editorInstanceForCSS.getValue());
+    refreshResultIFrame();
+  });
+
+  var editorInstanceForJS = CodeMirror.fromTextArea(editorForJS, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: "railscasts",
+    mode: "javascript"
+  });
+  editorInstanceForJS.on('change', function () {
+    localStorage.setItem("javascriptText", editorInstanceForJS.getValue());
+    refreshResultIFrame();
+  });
+
+</script>
+
+<script>
+
+  localStorage.setItem("htmlText", $("#editorForHTML").get(0).value);
+  localStorage.setItem("cssText", $("#editorForCSS").get(0).value);
+  localStorage.setItem("javascriptText", $("#editorForJS").get(0).value);
+  refreshResultIFrame();
+
+  function refreshResultIFrame() {
+
+    var resultIFrame = $('#resultIFrame');
+    var htmlText = localStorage.getItem("htmlText");
+    var cssText = localStorage.getItem("cssText");
+    var javascriptText = localStorage.getItem("javascriptText");
+
+    var loggerFunction = " \
+(function () { \
+    var old = console.log; \
+    var logger = parent.document.getElementById('log'); \
+    console.log = function () { \
+      for (var i = 0; i < arguments.length; i++) { \
+        if (typeof arguments[i] == 'object') { \
+            msg = (JSON && JSON.stringify ? JSON.stringify(arguments[i], undefined, 2) : arguments[i]) + '\\n'; \
+			logger.innerHTML += msg; \
+        } else { \
+            msg = arguments[i] + '\\n'; \
+			logger.innerHTML += msg; \
+        } \
+      } \
+    } \
+})(); \
+    window.onerror = function(message, url, linenumber) { \
+        console.log(message); \
+    }; \
+";
+
+    var loggerFunction = " \
+var log = parent.document.querySelector('#log'); \
+['log','debug','info','warn','error'].forEach(function (verb) { \
+    console[verb] = (function (method, verb, log) { \
+        return function () { \
+            var msg = document.createElement('div'); \
+            msg.classList.add(verb); \
+            msg.textContent = Array.prototype.slice.call(arguments).join(' '); \
+            log.appendChild(msg); \
+        }; \
+    })(console[verb], verb, log); \
+}); \
+window.onerror = function(message, url, linenumber) { \
+	console.error(message); \
+}; \
+";
+
+
+
+    // render the local iframe
+    // resultIFrame.contents().find('body').html(resultText);
+
+    resultIFrame.attr('src', '../view/{{codeEditorInstanceId}}');
+
+    // scroll to bottom of the console
+    document.getElementById("log").scrollTop = document.getElementById("log").scrollHeight;
+
+    // send the data to the server
+    $.ajax({
+      url: '/save/',
+      type: 'POST',
+      data: {
+        codeEditorInstanceId: '{{codeEditorInstanceId}}',
+        htmlText: htmlText,
+        cssText: cssText,
+        javascriptText: javascriptText
+      },
+      success: function (data) {
+      }
+    });
+
+  }
+
+</script>
