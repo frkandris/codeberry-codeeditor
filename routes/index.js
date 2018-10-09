@@ -14,20 +14,20 @@ var defaultContentFolder = './public/content/defaultEditorContent/';
 
 
 
-/* Handling URLs without codeEditorInstanceId, eg. "/", "/edit", "/view" */
+/* Handling URLs without codeEditorInstanceId, eg. '/', '/edit', '/view' */
 
 function redirectToNewEditorCreater(req, res, next) {
 
-  // Create new codeEditorInstanceId with 3 random words, separated by "-"
+  // Create new codeEditorInstanceId with 3 random words, separated by '-'
   var codeEditorInstanceId = randomWords({exactly:1, wordsPerString:3, separator:'-'});
 
   // Redirect to open a new editor
   res.redirect('/edit/' + codeEditorInstanceId);
 };
 
-router.get("/", redirectToNewEditorCreater);
-router.get("/edit", redirectToNewEditorCreater);
-router.get("/view", redirectToNewEditorCreater);
+router.get('/', redirectToNewEditorCreater);
+router.get('/edit', redirectToNewEditorCreater);
+router.get('/view', redirectToNewEditorCreater);
 
 
 
@@ -47,7 +47,7 @@ router.post('/save/', function(req, res, next) {
   // console.log(response);
 
   // Removing evil stuff from codeEditorInstanceId
-  codeEditorInstanceIdSafe = response.codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, "").substring(0,255);
+  codeEditorInstanceIdSafe = response.codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
   
   // If something sketchy is going on, just return, do not save.
   if (codeEditorInstanceIdSafe != response.codeEditorInstanceId) {
@@ -85,7 +85,7 @@ router.get('/view/:codeEditorInstanceId/', function(req, res) {
   var codeEditorInstanceId = req.params.codeEditorInstanceId;
 
   // Removing evil stuff from codeEditorInstanceId
-  codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, "").substring(0,255);
+  codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
 
   // If something sketchy is going on, redirect to a safe editor URL
   if (codeEditorInstanceId != codeEditorInstanceIdSafe) {
@@ -142,7 +142,7 @@ router.get('/edit/:codeEditorInstanceId/', function (req, res) {
   var codeEditorInstanceId = req.params.codeEditorInstanceId;
 
   // Removing evil stuff from codeEditorInstanceId
-  codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, "").substring(0,255);
+  codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
 
   // If something sketchy is going on, redirect to a safe editor URL
   if (codeEditorInstanceId != codeEditorInstanceIdSafe) {
