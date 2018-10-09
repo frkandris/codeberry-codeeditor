@@ -36,7 +36,7 @@ router.get('/view', redirectToNewEditorCreater);
 router.post('/save/', function(req, res, next) {
 
   // These are the variables that we recive from the client via Ajax:
-  response = {
+  var response = {
     codeEditorInstanceId : req.body.codeEditorInstanceId,
     htmlText : req.body.htmlText,
     cssText : req.body.cssText,
@@ -47,13 +47,13 @@ router.post('/save/', function(req, res, next) {
   // console.log(response);
 
   // Removing evil stuff from codeEditorInstanceId
-  codeEditorInstanceIdSafe = response.codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
+  var codeEditorInstanceIdSafe = response.codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
   
   // If something sketchy is going on, just return, do not save.
   if (codeEditorInstanceIdSafe != response.codeEditorInstanceId) {
     res.end();
   } else {
-    codeEditorInstanceId = codeEditorInstanceIdSafe;
+    var codeEditorInstanceId = codeEditorInstanceIdSafe;
   }
 
   // The directory where we're going to store the files
@@ -85,7 +85,7 @@ router.get('/view/:codeEditorInstanceId/', function(req, res) {
   var codeEditorInstanceId = req.params.codeEditorInstanceId;
 
   // Removing evil stuff from codeEditorInstanceId
-  codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
+  var codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
 
   // If something sketchy is going on, redirect to a safe editor URL
   if (codeEditorInstanceId != codeEditorInstanceIdSafe) {
@@ -142,7 +142,7 @@ router.get('/edit/:codeEditorInstanceId/', function (req, res) {
   var codeEditorInstanceId = req.params.codeEditorInstanceId;
 
   // Removing evil stuff from codeEditorInstanceId
-  codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
+  var codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
 
   // If something sketchy is going on, redirect to a safe editor URL
   if (codeEditorInstanceId != codeEditorInstanceIdSafe) {
