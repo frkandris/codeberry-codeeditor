@@ -71,4 +71,4 @@ Every editor opened in the client has a folder here, with the latest saved state
 ## Built With
 * HTML, CSS, JavaScript, jQuery, Bootstrap
 * Node.JS, Express.JS
-* Code Editor: CodeMirror
+* Text Editor: [CodeMirror](https://codemirror.net)
