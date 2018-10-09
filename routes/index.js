@@ -175,7 +175,7 @@ router.get('/edit/:codeEditorInstanceId/', function (req, res) {
   }
 
   // Render page
-  res.render('index', { 
+  res.render('editor', { 
     codeEditorInstanceId: codeEditorInstanceId,
     htmlText: htmlText,
     cssText: cssText,
