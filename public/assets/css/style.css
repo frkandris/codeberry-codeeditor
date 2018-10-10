@@ -25,7 +25,15 @@ html,body {
   background-color: #2B2B2B;
   color: #F5F1ED;
 }
+
 #resultIFrame {
 }
 
 .CodeMirror { height: 100%; }
+
+.cog-container {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 10;
+}
