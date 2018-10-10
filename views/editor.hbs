@@ -1,24 +1,42 @@
 <!-- Editor start -->
 <div class="container-fluid fullHeight">
+  <div style="position:absolute;top:0px;left:0px;z-index:10;">
+    <div class="dropdown">
+      <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <i class="fas fa-cog"></i>
+      </button>
+      <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        <a class="dropdown-item" href="/edit/">New editor</a>
+        <a class="dropdown-item" href="/view/{{codeEditorInstanceId}}" target="_blank">View result in a new tab</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="#" id="menuItemToggleHTML">Hide HTML panel</a>
+        <a class="dropdown-item" href="#" id="menuItemToggleCSS">Hide CSS panel</a>
+        <a class="dropdown-item" href="#" id="menuItemToggleJS">Hide JavaScript panel</a>
+        <a class="dropdown-item" href="#" id="menuItemToggleConsole">Hide Console</a>
+        <a class="dropdown-item" href="#" id="menuItemToggleResult">Hide Result</a>
+      </div>
+    </div>
+  </div>
+
   <div class="row no-gutters fullHeight">
     <div id="columnForHTMLEditor" class="col-sm">
-      <div>HTML</div>
+      <div class="text-center">HTML</div>
       <textarea id="editorForHTML">{{htmlText}}</textarea>
     </div>
     <div id="columnForCSSEditor" class="col-sm">
-      <div>CSS</div>
+      <div class="text-center">CSS</div>
       <textarea id="editorForCSS">{{cssText}}</textarea>
     </div>
     <div id="columnForJSEditor" class="col-sm">
-      <div>JavaScript</div>
+      <div class="text-center">JavaScript</div>
       <textarea id="editorForJS">{{javascriptText}}</textarea>
     </div>
     <div id="columnForConsole" class="col-sm">
-      <div>Console</div>
+      <div class="text-center">Console</div>
       <div id="log"></div>
     </div>
     <div id="columnForResult" class="col-sm">
-      <div>Result</div>
+      <div class="text-center">Result</div>
       <iframe id="resultIFrame"></iframe>
     </div>
   </div>
@@ -154,13 +172,13 @@ function sendDataToServer(){
   // helper functions 
   function getURLParameters() {
     var prmstr = window.location.search.substr(1);
-    return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+    return prmstr != null && prmstr != '' ? transformToAssocArray(prmstr) : {};
   }
   function transformToAssocArray(prmstr) {
     var params = {};
-    var prmarr = prmstr.split("&");
+    var prmarr = prmstr.split('&');
     for (var i = 0; i < prmarr.length; i++) {
-      var tmparr = prmarr[i].split("=");
+      var tmparr = prmarr[i].split('=');
       params[tmparr[0]] = tmparr[1];
     }
     return params;
@@ -171,16 +189,65 @@ function sendDataToServer(){
   // hide panels based on GET paramteres, eg. URL?html=0 -> do not display HTML panel
 
   if (params.html == 0) {
-    $("#columnForHTMLEditor").hide();
+    $('#columnForHTMLEditor').hide();
   }
   if (params.css == 0) {
-    $("#columnForCSSEditor").hide();
+    $('#columnForCSSEditor').hide();
   }
   if (params.js == 0) {
-    $("#columnForJSEditor").hide();
+    $('#columnForJSEditor').hide();
   }
   if (params.console == 0) {
-    $("#columnForConsole").hide();
+    $('#columnForConsole').hide();
   }
+
+
+  // Create bindings – if the user selects "Show/hide X" from the cog-settings menu, toggle the panel and change the menu item text
+
+  $('#menuItemToggleHTML').click(function (e) {
+    $('#columnForHTMLEditor').toggle();
+    if ($('#menuItemToggleHTML').text() == "Hide HTML panel") {
+      $('#menuItemToggleHTML').text("Show HTML panel"); 
+    } else {
+      $('#menuItemToggleHTML').text("Hide HTML panel"); 
+    }
+    e.preventDefault();
+  });
+  $('#menuItemToggleCSS').click(function (e) {
+    $('#columnForCSSEditor').toggle();
+    if ($('#menuItemToggleCSS').text() == "Hide CSS panel") {
+      $('#menuItemToggleCSS').text("Show CSS panel"); 
+    } else {
+      $('#menuItemToggleCSS').text("Hide CSS panel"); 
+    }
+    e.preventDefault();
+  });
+  $('#menuItemToggleJS').click(function (e) {
+    $('#columnForJSEditor').toggle();
+    if ($('#menuItemToggleJS').text() == "Hide JavaScript panel") {
+      $('#menuItemToggleJS').text("Show JavaScript panel"); 
+    } else {
+      $('#menuItemToggleJS').text("Hide JavaScript panel"); 
+    }
+    e.preventDefault();
+  });
+  $('#menuItemToggleConsole').click(function (e) {
+    $('#columnForConsole').toggle();
+    if ($('#menuItemToggleConsole').text() == "Hide Console") {
+      $('#menuItemToggleConsole').text("Show Console"); 
+    } else {
+      $('#menuItemToggleConsole').text("Hide Console"); 
+    }
+    e.preventDefault();
+  });
+  $('#menuItemToggleResult').click(function (e) {
+    $('#columnForResult').toggle();
+    if ($('#menuItemToggleResult').text() == "Hide Result") {
+      $('#menuItemToggleResult').text("Show Result"); 
+    } else {
+      $('#menuItemToggleResult').text("Hide Result"); 
+    }
+    e.preventDefault();
+  });
 
 </script>
