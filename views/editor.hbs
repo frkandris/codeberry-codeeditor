@@ -5,6 +5,10 @@
       <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         <i class="fas fa-cog"></i>
       </button>
+      <button class="btn btn-secondary btn-sm" id="playButton">
+        <i class="fas fa-play"></i>
+      </button>
+
       <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
         <a class="dropdown-item" href="/edit/">New editor</a>
         <a class="dropdown-item" href="/view/{{codeEditorInstanceId}}" target="_blank">View result in a new tab</a>
@@ -14,6 +18,9 @@
         <a class="dropdown-item" href="#" id="menuItemToggleJS">Hide JavaScript panel</a>
         <a class="dropdown-item" href="#" id="menuItemToggleConsole">Hide Console</a>
         <a class="dropdown-item" href="#" id="menuItemToggleResult">Hide Result</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="#" id="menuItemToggleAutoRun">Disable Autorun</a>
+        <a class="dropdown-item" href="#" id="menuItemRunCode"><i class="fas fa-play"></i> Refresh Result panel (Ctrl+Enter/Cmd+Enter)</a>
       </div>
     </div>
   </div>
@@ -73,17 +80,17 @@
 
   editorInstanceForHTML.on('change', function () {
     localStorage.setItem('htmlText', editorInstanceForHTML.getValue());
-    refreshresultIFrame();
+    refreshresultIFrame(isAutoRunEnabled);
     sendDataToServer();
   });
   editorInstanceForCSS.on('change', function () {
     localStorage.setItem('cssText', editorInstanceForCSS.getValue());
-    refreshresultIFrame();
+    refreshresultIFrame(isAutoRunEnabled);
     sendDataToServer();
   });
   editorInstanceForJS.on('change', function () {
     localStorage.setItem('javascriptText', editorInstanceForJS.getValue());
-    refreshresultIFrame();
+    refreshresultIFrame(isAutoRunEnabled);
     sendDataToServer();
   });
 
@@ -93,13 +100,19 @@
   localStorage.setItem('htmlText', editorInstanceForHTML.getValue());
   localStorage.setItem('cssText', editorInstanceForCSS.getValue());
   localStorage.setItem('javascriptText', editorInstanceForJS.getValue());
-  refreshresultIFrame();
+  refreshresultIFrame(isAutoRunEnabled);
   sendDataToServer();
 
 
   // Function to refresh the Result panel
 
-  function refreshresultIFrame() {
+  function refreshresultIFrame(isRunningEnabled) {
+
+    // If the running is not enabled (for example autorun is disabled), we return without refreshing the Result panel
+    if (isRunningEnabled == false) {
+      return;
+    }
+
 
     // Get the iFrame from the DOM
     var resultIFrame = $('#resultIFrame');
@@ -249,5 +262,73 @@ function sendDataToServer(){
     }
     e.preventDefault();
   });
+
+
+
+  // Create binding – if the user selects "Enable/disable Autorun" from the cog-settings menu, toggle the auto-run feature
+
+  // init
+  var isAutoRunEnabled = true;
+
+  $('#menuItemToggleAutoRun').click(function (e) {
+    if ($('#menuItemToggleAutoRun').text() == "Disable Autorun") {
+      $('#menuItemToggleAutoRun').text("Enable Autorun"); 
+      isAutoRunEnabled = false;
+    } else {
+      $('#menuItemToggleAutoRun').text("Disable Autorun"); 
+      isAutoRunEnabled = true;
+    }
+    e.preventDefault();
+  });
+
+
+
+  // Create bindings – if the user presses one of these, refresh Result panel:
+  // - the play button
+  // - the play button in the cog-settings menu
+  // - Cmd/Ctrl+Enter outside CodeMirror editor
+  // - Cmd/Ctrl+Enter inside CodeMirror editor
+
+  // - the play button
+  $('#playButton').click(function (e) {
+    refreshresultIFrame(true);
+  });
+
+  // - the play button in the cog-settings menu
+  $('#menuItemRunCode').click(function (e) {
+      refreshresultIFrame(true);
+  });
+
+  // - Cmd/Ctrl+Enter outside CodeMirror editor
+  hotkeys('command+enter, ctrl+enter', function(event,handler) {
+    refreshresultIFrame(true);
+  });
+
+  // - Cmd/Ctrl+Enter inside CodeMirror editor
+  editorInstanceForHTML.setOption("extraKeys", { 
+    "Cmd-Enter": function(cm) {
+      refreshresultIFrame(true);
+    },
+    "Ctrl-Enter": function(cm) {
+      refreshresultIFrame(true);
+    }
+  });
+  editorInstanceForCSS.setOption("extraKeys", { 
+    "Cmd-Enter": function(cm) {
+      refreshresultIFrame(true);
+    },
+    "Ctrl-Enter": function(cm) {
+      refreshresultIFrame(true);
+    }
+  });
+  editorInstanceForJS.setOption("extraKeys", { 
+    "Cmd-Enter": function(cm) {
+      refreshresultIFrame(true);
+    },
+    "Ctrl-Enter": function(cm) {
+      refreshresultIFrame(true);
+    }
+  });
+
 
 </script>
