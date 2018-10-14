@@ -18,6 +18,7 @@
         <a class="dropdown-item" href="#" id="menuItemToggleJS">Hide JavaScript panel</a>
         <a class="dropdown-item" href="#" id="menuItemToggleConsole">Hide Console</a>
         <a class="dropdown-item" href="#" id="menuItemToggleResult">Hide Result</a>
+        <a class="dropdown-item" href="#" id="menuItemToggleValidatorResult">Hide Validator</a>
         <div class="dropdown-divider"></div>
         <a class="dropdown-item" href="#" id="menuItemToggleAutoRun">Disable Autorun</a>
         <a class="dropdown-item" href="#" id="menuItemRunCode"><i class="fas fa-play"></i> Refresh Result panel (Ctrl+Enter/Cmd+Enter)</a>
@@ -46,6 +47,15 @@
       <div class="text-center">Result</div>
       <iframe id="resultIFrame"></iframe>
     </div>
+    <div id="columnForValidatorResult" class="col-sm">
+      <div class="text-center">Validator Result</div>
+      <div id="validatorResult">
+        <ul class="fa-ul">
+          <li id="validatorResult1ListItem" class="text-danger"><i id="validatorResult1Check" class="fa-li far fa-square"></i> Document has a &lt;H1&gt; tag</li>
+          <li id="validatorResult2ListItem" class="text-danger"><i id="validatorResult2Check" class="fa-li far fa-square"></i> The content of the &lt;H1&gt;&lt;/H1&gt; tag is "almafa"</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </div>
 <input type="hidden" name="codeEditorInstanceId" value="{{codeEditorInstanceId}}" />
@@ -59,19 +69,19 @@
   var editorInstanceForHTML = CodeMirror.fromTextArea(editorForHTML, {
     lineNumbers: true,
     lineWrapping: true,
-    theme: 'railscasts',
+    theme: 'monokai',
     mode: 'text/html'
   });
   var editorInstanceForCSS = CodeMirror.fromTextArea(editorForCSS, {
     lineNumbers: true,
     lineWrapping: true,
-    theme: 'railscasts',
+    theme: 'monokai',
     mode: 'css'
   });
   var editorInstanceForJS = CodeMirror.fromTextArea(editorForJS, {
     lineNumbers: true,
     lineWrapping: true,
-    theme: 'railscasts',
+    theme: 'monokai',
     mode: 'javascript'
   });
 
@@ -82,16 +92,19 @@
     localStorage.setItem('htmlText', editorInstanceForHTML.getValue());
     refreshresultIFrame(isAutoRunEnabled);
     sendDataToServer();
+    checkCodeWithValidator();
   });
   editorInstanceForCSS.on('change', function () {
     localStorage.setItem('cssText', editorInstanceForCSS.getValue());
     refreshresultIFrame(isAutoRunEnabled);
     sendDataToServer();
+    checkCodeWithValidator();
   });
   editorInstanceForJS.on('change', function () {
     localStorage.setItem('javascriptText', editorInstanceForJS.getValue());
     refreshresultIFrame(isAutoRunEnabled);
     sendDataToServer();
+    checkCodeWithValidator();
   });
 
 
@@ -102,6 +115,7 @@
   localStorage.setItem('javascriptText', editorInstanceForJS.getValue());
   refreshresultIFrame(isAutoRunEnabled);
   sendDataToServer();
+  checkCodeWithValidator();
 
 
   // Function to refresh the Result panel
@@ -224,6 +238,7 @@ function sendDataToServer(){
     } else {
       $('#menuItemToggleHTML').text("Hide HTML panel"); 
     }
+    refreshEditors();
     e.preventDefault();
   });
   $('#menuItemToggleCSS').click(function (e) {
@@ -233,6 +248,7 @@ function sendDataToServer(){
     } else {
       $('#menuItemToggleCSS').text("Hide CSS panel"); 
     }
+    refreshEditors();
     e.preventDefault();
   });
   $('#menuItemToggleJS').click(function (e) {
@@ -242,6 +258,7 @@ function sendDataToServer(){
     } else {
       $('#menuItemToggleJS').text("Hide JavaScript panel"); 
     }
+    refreshEditors();
     e.preventDefault();
   });
   $('#menuItemToggleConsole').click(function (e) {
@@ -251,6 +268,7 @@ function sendDataToServer(){
     } else {
       $('#menuItemToggleConsole').text("Hide Console"); 
     }
+    refreshEditors();
     e.preventDefault();
   });
   $('#menuItemToggleResult').click(function (e) {
@@ -260,6 +278,17 @@ function sendDataToServer(){
     } else {
       $('#menuItemToggleResult').text("Hide Result"); 
     }
+    refreshEditors();
+    e.preventDefault();
+  });
+  $('#menuItemToggleValidatorResult').click(function (e) {
+    $('#columnForValidatorResult').toggle();
+    if ($('#menuItemToggleValidatorResult').text() == "Hide Validator") {
+      $('#menuItemToggleValidatorResult').text("Show Validator"); 
+    } else {
+      $('#menuItemToggleValidatorResult').text("Hide Validator"); 
+    }
+    refreshEditors();
     e.preventDefault();
   });
 
@@ -331,4 +360,66 @@ function sendDataToServer(){
   });
 
 
+  // Send HTML+CSS+JS data to server, get back validation data, update Validator panel accordingly
+
+  function checkCodeWithValidator() {
+
+    // Get HTML+CSS+JS panel content from the localStorage
+    var htmlText = localStorage.getItem('htmlText');
+    var cssText = localStorage.getItem('cssText');
+    var javascriptText = localStorage.getItem('javascriptText');
+
+    // Send HTML+CSS+JS panel data to the server via Ajax
+    $.ajax({
+      url: '/validate/',
+      type: 'POST',
+      data: {
+        codeEditorInstanceId: '{{codeEditorInstanceId}}',
+        htmlText: htmlText,
+        cssText: cssText,
+        javascriptText: javascriptText
+      },
+      // Get back code validation data
+      success: function (validatorResult) {
+        var arrayResultFromValidator = JSON.parse(validatorResult);
+
+        // if the result is positive, update Validator panel
+        if (arrayResultFromValidator["validatorRule1Result"] == true) {
+          $('#validatorResult1Check').removeClass("fa-square");
+          $('#validatorResult1Check').addClass("fa-check-square");
+          $('#validatorResult1ListItem').removeClass("text-danger");
+          $('#validatorResult1ListItem').addClass("text-success");
+        } else {
+          $('#validatorResult1Check').removeClass("fa-check-square");
+          $('#validatorResult1Check').addClass("fa-square");
+          $('#validatorResult1ListItem').removeClass("text-success");
+          $('#validatorResult1ListItem').addClass("text-danger");
+        }
+
+        if (arrayResultFromValidator["validatorRule2Result"] == true) {
+          $('#validatorResult2Check').removeClass("fa-square");
+          $('#validatorResult2Check').addClass("fa-check-square");
+          $('#validatorResult2ListItem').removeClass("text-danger");
+          $('#validatorResult2ListItem').addClass("text-success");
+        } else {
+          $('#validatorResult2Check').removeClass("fa-check-square");
+          $('#validatorResult2Check').addClass("fa-square");
+          $('#validatorResult2ListItem').removeClass("text-success");
+          $('#validatorResult2ListItem').addClass("text-danger");
+        }
+
+      }
+    });
+
+    return;
+  }
+
+
+  // Refresh editors - needed when we show/hide panels, otherwise cursors are off
+
+  function refreshEditors() {
+    editorInstanceForHTML.refresh();
+    editorInstanceForCSS.refresh();
+    editorInstanceForJS.refresh();
+  }
 </script>
