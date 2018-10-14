@@ -3,6 +3,8 @@ var router = express.Router();
 var path = require('path');
 var fs = require('fs');
 var randomWords = require('random-words');
+const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
 
 /* Init variables */
 
@@ -183,5 +185,49 @@ router.get('/edit/:codeEditorInstanceId/', function (req, res) {
   });
 
 })
+
+
+/* Validate code coming from the client */
+
+router.post('/validate/', function(req, res, next) {
+
+  // Concatenate HTML+CSS+JS into 1 string
+  var resultText = '\<html\>\<head\>\<style\>' + req.body.cssText + '\<\/style\>\<\/head\>\<body\>' + req.body.htmlText + '\<script\>' + req.body.javascriptText + '\<\/script\>\<\/body\>\</html\>';
+
+  // Create a virtual DOM using jsdom
+  const dom = new JSDOM(resultText);
+
+  // Check validator rule #1 – do we have a h1?
+  try {
+    var numberOfH1 = dom.window.document.getElementsByTagName("h1").length;
+    if (numberOfH1 > 0) {
+      var validatorRule1Result = true;
+    }
+  } catch(e) {
+    var validatorRule1Result = false;    
+  }
+
+  // Check validator rule #1 – do we have "almafa" in the h1?
+  try {
+    var contentOfH1 = dom.window.document.getElementsByTagName("h1")[0].textContent;
+    if (contentOfH1 == "almafa") {
+      var validatorRule2Result = true;
+    }
+  } catch(e) {
+    var validatorRule2Result = false;    
+  }
+
+  // Prepare string, that will be returned to the Ajax script, that called this route
+  var validatorResult = JSON.stringify({ 
+    validatorRule1Result: validatorRule1Result, 
+    validatorRule2Result: validatorRule2Result 
+  });
+
+  // Return
+  res.end(validatorResult);
+});
+
+
+
 
 module.exports = router;

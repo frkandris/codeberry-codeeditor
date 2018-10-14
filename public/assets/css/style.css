@@ -1,17 +1,21 @@
 html,body {
   height: 100%;
-  background-color: #2B2B2B;
+  background-color: #262922;
   color: #F5F1ED;
 }
 
 .fullHeight {
-  height: 100%;
+  height: 98%;
 }
 
 #editorForHTML, #editorForCSS, #editorForJS, #log, #resultIFrame {
   width: 100%;
   height: 100%;
   border: 0px;
+}
+
+#columnForConsole {
+  height: 100%;
 }
 
 .error {
@@ -22,7 +26,7 @@ html,body {
   font-size: 12px;
   font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
   overflow-y: scroll;
-  background-color: #2B2B2B;
+  background-color: #262922;
   color: #F5F1ED;
 }
 
