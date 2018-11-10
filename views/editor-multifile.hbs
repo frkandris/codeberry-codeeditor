@@ -1,0 +1,463 @@
+<!-- Editor start -->
+<div class="container-fluid fullHeight">
+  <div class="cog-container">
+    <div class="dropdown">
+      <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <i class="fas fa-cog"></i>
+      </button>
+      <button class="btn btn-secondary btn-sm" id="playButton">
+        <i class="fas fa-play"></i>
+      </button>
+
+      <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        <a class="dropdown-item" href="/m/edit/">New editor</a>
+        <a class="dropdown-item" href="/m/view/{{codeEditorInstanceId}}" target="_blank">View result in a new tab</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="#" id="menuItemToggleConsole">Hide Console</a>
+        <a class="dropdown-item" href="#" id="menuItemToggleResult">Hide Result</a>
+        <a class="dropdown-item" href="#" id="menuItemToggleValidatorResult">Hide Validator</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="#" id="menuItemToggleAutoRun">Disable Autorun</a>
+        <a class="dropdown-item" href="#" id="menuItemRunCode"><i class="fas fa-play"></i> Refresh Result panel (Ctrl+Enter/Cmd+Enter)</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row no-gutters fullHeight">
+    <div id="columnForFiles" class="col-sm">
+      <div class="text-center">Files</div>
+      <div id="tree"></div>
+      <div class="form-group">
+        <input type="text" class="form-control" id="newFileName" placeholder="Enter new file name" style="display:none;">
+      </div>
+    </div>
+    <div id="columnForEditorForAll" class="col-sm">
+      <div class="text-center">
+        <span id="editorFileName">index.html</span>
+      </div>
+      <textarea id="editorForAll"></textarea>
+    </div>
+    {{!-- <div id="columnForConsole" class="col-sm">
+      <div class="text-center">Console</div>
+      <div id="log"></div>
+    </div> --}}
+    <div id="columnForResult" class="col-sm">
+      <div class="text-center">
+        <span id="resultPanelName">Result</span>
+      </div>
+      <iframe id="resultIFrame"></iframe>
+    </div>
+    {{!-- <div id="columnForValidatorResult" class="col-sm">
+      <div class="text-center">Validator Result</div>
+      <div id="validatorResult">
+        <ul class="fa-ul">
+          <li id="validatorResult1ListItem" class="text-danger"><i id="validatorResult1Check" class="fa-li far fa-square"></i> Document has a &lt;H1&gt; tag</li>
+          <li id="validatorResult2ListItem" class="text-danger"><i id="validatorResult2Check" class="fa-li far fa-square"></i> The content of the &lt;H1&gt;&lt;/H1&gt; tag is "almafa"</li>
+        </ul>
+      </div>
+    </div> --}}
+
+  </div>
+</div>
+<input type="hidden" name="codeEditorInstanceId" value="{{codeEditorInstanceId}}" />
+<!-- Editor end -->
+
+
+<script>
+
+  // Create editor instances using CodeMirror
+
+  var editorInstanceForAll = CodeMirror.fromTextArea(editorForAll, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: 'monokai',
+    mode: 'text/html'
+  });
+
+
+  // Create bindings – if the editor changes, store content in localStorage and refresh Result iframe
+
+  editorInstanceForAll.on('change', function () {
+    localStorage.setItem('editorText', editorInstanceForAll.getValue());
+    refreshresultIFrame(isAutoRunEnabled);
+    sendDataToServer();
+    checkCodeWithValidator();
+  });
+
+
+  // This is how we start – store editor in localStorage and refresh Result panel
+
+  localStorage.setItem('editorFileName', 'index.html');
+  localStorage.setItem('savingIsEnabled', 1);
+
+  getFileFromServer('index.html');
+  refreshresultIFrame(isAutoRunEnabled);
+  checkCodeWithValidator();
+
+
+  // Function to refresh the Result panel
+
+  function refreshresultIFrame(isRunningEnabled) {
+
+    // If the running is not enabled (for example autorun is disabled), we return without refreshing the Result panel
+    if (isRunningEnabled == false) {
+      return;
+    }
+
+    // Get the iFrame from the DOM
+    var resultIFrame = $('#resultIFrame');
+
+    // Console logging function, that will be called inside in the Result panel, to display console results in the Console panel
+    var loggerFunction = " \
+var log = parent.document.querySelector('#log'); \
+['log','debug','info','warn','error'].forEach(function (verb) { \
+    console[verb] = (function (method, verb, log) { \
+        return function () { \
+            var msg = document.createElement('div'); \
+            msg.classList.add(verb); \
+            msg.textContent = Array.prototype.slice.call(arguments).join(' '); \
+            log.appendChild(msg); \
+        }; \
+    })(console[verb], verb, log); \
+}); \
+window.onerror = function(message, url, linenumber) { \
+	console.error(message); \
+}; \
+";
+
+    var editorFileName = localStorage.getItem('editorFileName');
+
+    var extension = editorFileName.substr( (editorFileName.lastIndexOf('.') +1) ).toLowerCase();
+    switch(extension) {
+      case 'html':
+      case 'htm':
+        var displayFileName = editorFileName;
+        break;
+      default:
+        var displayFileName = 'index.html';
+    }
+
+
+    // Other version: use the result viewer from the server
+    resultIFrame.attr('src', '/m/view/{{codeEditorInstanceId}}/'+displayFileName);
+    $('#resultPanelName').text("Result ("+displayFileName+")");
+
+    // Scroll to bottom of the console
+    // document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+  }
+
+
+// Send the panel data to the server via Ajax
+
+function sendDataToServer(){
+
+  // if saving is not enabled (maybe we are downloading something right now), return without doing anything
+  if (localStorage.getItem('savingIsEnabled') == 0) {
+    return;
+  };
+
+  // Get panel content from the localStorage
+  var editorText = localStorage.getItem('editorText');
+
+  // Get file name from the localStorage
+  var fileName = localStorage.getItem('editorFileName');
+
+  // Send HTML+CSS+JS panel data to the server via Ajax
+  $.ajax({
+    url: '/m/save/',
+    type: 'POST',
+    data: {
+      codeEditorInstanceId: '{{codeEditorInstanceId}}',
+      editorText: editorText,
+      fileName: fileName
+    },
+    success: function (data) {
+    }
+  });
+
+}
+
+
+// Show/hide editor panels based on GET parameters, eg. URL?html=0 -> do not display HTML panel
+
+  // helper functions 
+  function getURLParameters() {
+    var prmstr = window.location.search.substr(1);
+    return prmstr != null && prmstr != '' ? transformToAssocArray(prmstr) : {};
+  }
+  function transformToAssocArray(prmstr) {
+    var params = {};
+    var prmarr = prmstr.split('&');
+    for (var i = 0; i < prmarr.length; i++) {
+      var tmparr = prmarr[i].split('=');
+      params[tmparr[0]] = tmparr[1];
+    }
+    return params;
+  }
+
+  var params = getURLParameters();
+
+  // hide panels based on GET paramteres, eg. URL?html=0 -> do not display HTML panel
+
+  if (params.editor == 0) {
+    $('#columnForEditorForAll').hide();
+  }
+
+
+  // Create bindings – if the user selects "Show/hide X" from the cog-settings menu, toggle the panel and change the menu item text
+
+  $('#menuItemToggleEditorForAll').click(function (e) {
+    $('#columnForEditorForAll').toggle();
+    if ($('#menuItemToggleEditorForAll').text() == "Hide Editor") {
+      $('#menuItemToggleEditorForAll').text("Show Editor"); 
+    } else {
+      $('#menuItemToggleEditorForAll').text("Hide Editor"); 
+    }
+    refreshEditors();
+    e.preventDefault();
+  });
+  $('#menuItemToggleConsole').click(function (e) {
+    $('#columnForConsole').toggle();
+    if ($('#menuItemToggleConsole').text() == "Hide Console") {
+      $('#menuItemToggleConsole').text("Show Console"); 
+    } else {
+      $('#menuItemToggleConsole').text("Hide Console"); 
+    }
+    refreshEditors();
+    e.preventDefault();
+  });
+  $('#menuItemToggleResult').click(function (e) {
+    $('#columnForResult').toggle();
+    if ($('#menuItemToggleResult').text() == "Hide Result") {
+      $('#menuItemToggleResult').text("Show Result"); 
+    } else {
+      $('#menuItemToggleResult').text("Hide Result"); 
+    }
+    refreshEditors();
+    e.preventDefault();
+  });
+  $('#menuItemToggleValidatorResult').click(function (e) {
+    $('#columnForValidatorResult').toggle();
+    if ($('#menuItemToggleValidatorResult').text() == "Hide Validator") {
+      $('#menuItemToggleValidatorResult').text("Show Validator"); 
+    } else {
+      $('#menuItemToggleValidatorResult').text("Hide Validator"); 
+    }
+    refreshEditors();
+    e.preventDefault();
+  });
+
+
+
+  // Create binding – if the user selects "Enable/disable Autorun" from the cog-settings menu, toggle the auto-run feature
+
+  // init
+  var isAutoRunEnabled = true;
+
+  $('#menuItemToggleAutoRun').click(function (e) {
+    if ($('#menuItemToggleAutoRun').text() == "Disable Autorun") {
+      $('#menuItemToggleAutoRun').text("Enable Autorun"); 
+      isAutoRunEnabled = false;
+    } else {
+      $('#menuItemToggleAutoRun').text("Disable Autorun"); 
+      isAutoRunEnabled = true;
+    }
+    e.preventDefault();
+  });
+
+
+
+  // Create bindings – if the user presses one of these, refresh Result panel:
+  // - the play button
+  // - the play button in the cog-settings menu
+  // - Cmd/Ctrl+Enter outside CodeMirror editor
+  // - Cmd/Ctrl+Enter inside CodeMirror editor
+
+  // - the play button
+  $('#playButton').click(function (e) {
+    refreshresultIFrame(true);
+  });
+
+  // - the play button in the cog-settings menu
+  $('#menuItemRunCode').click(function (e) {
+      refreshresultIFrame(true);
+  });
+
+  // - Cmd/Ctrl+Enter outside CodeMirror editor
+  hotkeys('command+enter, ctrl+enter', function(event,handler) {
+    refreshresultIFrame(true);
+  });
+
+  // - Cmd/Ctrl+Enter inside CodeMirror editor
+  editorInstanceForAll.setOption("extraKeys", { 
+    "Cmd-Enter": function(cm) {
+      refreshresultIFrame(true);
+    },
+    "Ctrl-Enter": function(cm) {
+      refreshresultIFrame(true);
+    }
+  });
+
+
+  // Send HTML+CSS+JS data to server, get back validation data, update Validator panel accordingly
+
+  function checkCodeWithValidator() {
+    return;
+  }
+
+
+  // Refresh editors - needed when we show/hide panels, otherwise cursors are off
+
+  function refreshEditors() {
+    editorInstanceForAll.refresh();
+  }
+
+
+
+  // Creating file list panel
+
+  // Creating the json with file names coming from the server
+  var fileList = [
+    {{#each fileListArray}}
+      {
+          text: '{{this}}',
+          backColor: "#262922"
+      },
+    {{/each}}
+  ];
+
+  // Calling the bootstrap-treeview JavaScript library
+  $('#tree').treeview({
+      data: fileList
+  });
+
+
+
+
+  // Handling clicks on the file list
+
+  $('#tree').on('nodeSelected', function(event, data) {
+
+    // which node was clicked on?
+    var fileSelected = data.text;
+    getFileFromServer(fileSelected);
+
+  });
+
+
+  function getFileFromServer(fileSelected) {
+
+    // disable saving, while we are getting files from the server
+    localStorage.setItem('savingIsEnabled', 0);
+
+    // let us call the server to get the matching text
+    $.ajax({
+      url: '/m/getfile/',
+      type: 'POST',
+      data: {
+        codeEditorInstanceId: '{{codeEditorInstanceId}}',
+        fileSelected: fileSelected
+      },
+
+      // data coming from the server
+      success: function (getFileResult) {
+
+          // make an associative array from the json
+          var arrayGetFileResult = JSON.parse(getFileResult);
+
+          // set the editor panel content
+          editorInstanceForAll.setValue(arrayGetFileResult['editorText']);
+
+          // set the editor panel highlighting based on the file extension
+          var extension = arrayGetFileResult['fileSelected'].substr( (arrayGetFileResult['fileSelected'].lastIndexOf('.') +1) ).toLowerCase();;
+          switch(extension) {
+              case 'html':
+              case 'htm':
+                editorInstanceForAll.setOption("mode", "text/html");
+                break;
+              case 'js':
+                editorInstanceForAll.setOption("mode", "javascript");
+                break;
+              case 'css':
+                editorInstanceForAll.setOption("mode", "css");
+                break;
+              default:
+                editorInstanceForAll.setOption("mode", "text/html");
+          }
+
+          // save the file name in local storage
+          localStorage.setItem('editorFileName', arrayGetFileResult['fileSelected']);
+
+          // change the Editor panel title
+          $('#editorFileName').text(arrayGetFileResult['fileSelected']);
+
+          // refresh the Result panel
+          refreshresultIFrame();
+
+          // enable saving again
+          localStorage.setItem('savingIsEnabled', 1);
+
+      }
+    });
+  }
+
+
+
+
+  function deleteFileFromServer(fileSelected) {
+
+    // let us call the server to delete a file
+    $.ajax({
+      url: '/m/deletefile/',
+      type: 'POST',
+      data: {
+        codeEditorInstanceId: '{{codeEditorInstanceId}}',
+        fileSelected: fileSelected
+      },
+      success: function () {
+        location.reload(); 
+      }
+    });
+  }
+
+
+
+  $(function() {
+    $.contextMenu({
+        selector: '#columnForFiles', 
+        callback: function(key, options) {
+          console.log("new file");
+          $('#newFileName').show();
+        },
+        items: {
+            "new file": {name: "New file"},
+        }
+    });
+    $('#newFileName').keydown(function(event) {
+      if (event.which == 13) {
+
+        localStorage.setItem('editorText', '');
+        localStorage.setItem('editorFileName', $('#newFileName').val());
+        sendDataToServer();
+
+        $('#newFileName').hide();
+        $('#newFileName').val('');
+
+        location.reload();
+      }
+    });
+
+    $.contextMenu({
+        selector: '#tree > ul > li', 
+        callback: function(key, options) {
+          var fileSelected = fileList[$(this).index()].text;
+          deleteFileFromServer(fileSelected);
+        },
+        items: {
+            "delete": {name: "Delete"},
+            "rename": {name: "Rename"},
+        }
+    });
+
+  });
+</script>

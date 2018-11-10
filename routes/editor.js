@@ -3,7 +3,7 @@ var router = express.Router();
 var path = require('path');
 var fs = require('fs');
 var randomWords = require('random-words');
-const jsdom = require("jsdom");
+const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 
 /* Init variables */
@@ -187,6 +187,7 @@ router.get('/edit/:codeEditorInstanceId/', function (req, res) {
 })
 
 
+
 /* Validate code coming from the client */
 
 router.post('/validate/', function(req, res, next) {
@@ -226,8 +227,6 @@ router.post('/validate/', function(req, res, next) {
   // Return
   res.end(validatorResult);
 });
-
-
 
 
 module.exports = router;
