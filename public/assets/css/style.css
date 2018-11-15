@@ -41,3 +41,7 @@ html,body {
   left: 0px;
   z-index: 10;
 }
+
+.line-focus {
+  background: #363932;
+}

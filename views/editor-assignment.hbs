@@ -1,0 +1,182 @@
+<!-- Editor start -->
+<div class="container-fluid fullHeight">
+
+  <div class="row no-gutters fullHeight">
+    <div id="columnForEditor" class="col-sm">
+      <textarea id="editorForAssignment">{{assignmentText}}</textarea>
+    </div>
+    <div id="columnForResult" class="col-sm">
+      <iframe id="resultIFrame"></iframe>
+    </div>
+    <div id="columnForValidatorResult" class="col-sm">
+      <div id="validatorResult">
+        <ul class="fa-ul">
+          <li id="validatorResult1ListItem" class="text-danger"><i id="validatorResult1Check" class="fa-li far fa-square"></i> {{validatorText}}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="display:none;">
+  <textarea id="editorForHTML">{{htmlText}}</textarea>
+  <textarea id="editorForCSS">{{cssText}}</textarea>
+  <textarea id="editorForJavascript">{{javascriptText}}</textarea>
+</div>
+<input type="hidden" name="assignmentDefinitionId" value="{{assignmentDefinitionId}}" />
+<input type="hidden" name="studentId" value="{{studentId}}" />
+<!-- Editor end -->
+
+
+<script>
+
+  var isAutoRunEnabled = true;
+
+  // Create editor instances using CodeMirror
+
+  var editorInstanceForAssignment = CodeMirror.fromTextArea(editorForAssignment, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: 'monokai',
+    mode: 'css'
+  });
+  editorInstanceForAssignment.setOption("extraKeys", {
+    "Enter": function() {return editorInstanceForAssignment.PASS;},
+  });
+
+
+  // Make some lines "read only"
+  var readOnlyLines = [0,2];
+  editorInstanceForAssignment.on('beforeChange',function(cm,change) {
+    if ( ~readOnlyLines.indexOf(change.from.line) ) {
+        change.cancel();
+    }
+  });
+
+  // Highlight the lines that can be edited
+  editorInstanceForAssignment.addLineClass(1, 'background', 'line-focus');
+
+  // Put the cursor to the start position
+  editorInstanceForAssignment.focus();
+  editorInstanceForAssignment.setCursor({line: 1, ch: 0});
+
+
+  // Create bindings – if the editor changes, store content in localStorage and refresh Result iframe
+
+  editorInstanceForAssignment.on('change', function () {
+    localStorage.setItem('assignmentText', editorInstanceForAssignment.getValue());
+    refreshresultIFrame(isAutoRunEnabled);
+    sendDataToServer();
+    checkCodeWithValidator();
+  });
+
+
+  // This is how we start – store editor in localStorage and refresh Result panel
+
+  localStorage.setItem('htmlText', $('#editorForHTML').text());
+  localStorage.setItem('cssText', $('#editorForCSS').text());
+  localStorage.setItem('javascriptText', $('#editorForJavascript').text());
+  localStorage.setItem('assignmentText', editorInstanceForAssignment.getValue());
+  refreshresultIFrame(isAutoRunEnabled);
+  sendDataToServer();
+  checkCodeWithValidator();
+
+
+  // Function to refresh the Result panel
+
+  function refreshresultIFrame(isRunningEnabled) {
+
+    // If the running is not enabled (for example autorun is disabled), we return without refreshing the Result panel
+    if (isRunningEnabled == false) {
+      return;
+    }
+
+
+    // Get the iFrame from the DOM
+    var resultIFrame = $('#resultIFrame');
+
+    // Get the HTML+CSS+JS panel content from the localStorage
+    var htmlText = localStorage.getItem('htmlText');
+    var cssText = localStorage.getItem('cssText');
+    var javascriptText = localStorage.getItem('javascriptText');
+    var assignmentText = localStorage.getItem('assignmentText');
+
+    
+    // Concatenate html+css+js into 1 string
+    var resultText = '\<html\>\<head\>\<style\>' + cssText + assignmentText + '\<\/style\>\<\/head\>\<body\>' + htmlText + '\<script\>' + javascriptText + '\<\/script\>\<\/body\>\</html\>';
+
+    // Render the Results panel iframe
+    resultIFrame.contents().find('body').html(resultText);
+
+  }
+
+
+// Send the panel data to the server via Ajax
+
+function sendDataToServer(){
+
+  // Get HTML+CSS+JS panel content from the localStorage
+  // var htmlText = localStorage.getItem('htmlText');
+  // var cssText = localStorage.getItem('cssText');
+  // var javascriptText = localStorage.getItem('javascriptText');
+  var assignmentText = localStorage.getItem('assignmentText');
+
+  // Send HTML+CSS+JS panel data to the server via Ajax
+  $.ajax({
+    url: '/a/save/',
+    type: 'POST',
+    data: {
+      assignmentDefinitionId: '{{assignmentDefinitionId}}',
+      studentId: '{{studentId}}',
+      assignmentText: assignmentText
+    },
+    success: function (data) {
+    }
+  });
+
+}
+
+
+  // Send HTML+CSS+JS data to server, get back validation data, update Validator panel accordingly
+
+  function checkCodeWithValidator() {
+
+    // Get HTML+CSS+JS panel content from the localStorage
+    var assignmentText = localStorage.getItem('assignmentText');
+
+    // Send HTML+CSS+JS panel data to the server via Ajax
+    $.ajax({
+      url: '/a/validate/',
+      type: 'POST',
+      data: {
+        assignmentDefinitionId: '{{assignmentDefinitionId}}',
+        studentId: '{{studentId}}',
+        assignmentText: assignmentText
+      },
+      // Get back code validation data
+      success: function (validatorResult) {
+        var arrayResultFromValidator = JSON.parse(validatorResult);
+
+        // if the result is positive, update Validator panel
+        if (arrayResultFromValidator["validatorRule1Result"] == true) {
+          $('#validatorResult1Check').removeClass("fa-square");
+          $('#validatorResult1Check').addClass("fa-check-square");
+          $('#validatorResult1ListItem').removeClass("text-danger");
+          $('#validatorResult1ListItem').addClass("text-success");
+        } else {
+          $('#validatorResult1Check').removeClass("fa-check-square");
+          $('#validatorResult1Check').addClass("fa-square");
+          $('#validatorResult1ListItem').removeClass("text-success");
+          $('#validatorResult1ListItem').addClass("text-danger");
+        }
+      }
+    });
+
+    return;  }
+
+
+  // Refresh editors - needed when we show/hide panels, otherwise cursors are off
+
+  function refreshEditors() {
+    editorInstanceForAssignment.refresh();
+  }
+</script>

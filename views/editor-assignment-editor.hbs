@@ -1,0 +1,189 @@
+<!-- Editor start -->
+<div class="container-fluid fullHeight">
+  <div class="row no-gutters fullHeight">
+    <div id="columnForHTMLEditor" class="col-sm">
+      <div class="text-center">HTML</div>
+      <textarea id="editorForHTML">{{htmlText}}</textarea>
+    </div>
+    <div id="columnForCSSEditor" class="col-sm">
+      <div class="text-center">CSS</div>
+      <textarea id="editorForCSS">{{cssText}}</textarea>
+    </div>
+    <div id="columnForJSEditor" class="col-sm">
+      <div class="text-center">JavaScript</div>
+      <textarea id="editorForJS">{{javascriptText}}</textarea>
+    </div>
+    <div id="columnForAssignment" class="col-sm">
+      <div class="text-center">Original student code</div>
+      <textarea id="editorForAssignment">{{assignmentText}}</textarea>
+    </div>
+    <div id="columnForValidator" class="col-sm">
+      <div class="text-center">Validator code</div>
+      <textarea id="editorForValidator">{{validatorText}}</textarea>
+    </div>
+    <div id="columnForResult" class="col-sm">
+      <div class="text-center">Result</div>
+      <iframe id="resultIFrame"></iframe>
+    </div>
+  </div>
+</div>
+<input type="hidden" name="assignmentDefinitionId" value="{{assignmentDefinitionId}}" />
+<!-- Editor end -->
+
+
+<script>
+
+  // Create editor instances using CodeMirror
+
+  var editorInstanceForHTML = CodeMirror.fromTextArea(editorForHTML, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: 'monokai',
+    mode: 'text/html'
+  });
+  var editorInstanceForCSS = CodeMirror.fromTextArea(editorForCSS, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: 'monokai',
+    mode: 'css'
+  });
+  var editorInstanceForJS = CodeMirror.fromTextArea(editorForJS, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: 'monokai',
+    mode: 'javascript'
+  });
+  var editorInstanceForAssignment = CodeMirror.fromTextArea(editorForAssignment, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: 'monokai',
+    mode: 'css'
+  });
+  var editorInstanceForValidator = CodeMirror.fromTextArea(editorForValidator, {
+    lineNumbers: true,
+    lineWrapping: true,
+    theme: 'monokai',
+    mode: 'javascript'
+  });
+
+
+  // Create bindings – if the editor changes, store content in localStorage and refresh Result iframe
+
+  editorInstanceForHTML.on('change', function () {
+    localStorage.setItem('htmlText', editorInstanceForHTML.getValue());
+    refreshresultIFrame(isAutoRunEnabled);
+    sendDataToServer();
+    checkCodeWithValidator();
+  });
+  editorInstanceForCSS.on('change', function () {
+    localStorage.setItem('cssText', editorInstanceForCSS.getValue());
+    refreshresultIFrame(isAutoRunEnabled);
+    sendDataToServer();
+    checkCodeWithValidator();
+  });
+  editorInstanceForJS.on('change', function () {
+    localStorage.setItem('javascriptText', editorInstanceForJS.getValue());
+    refreshresultIFrame(isAutoRunEnabled);
+    sendDataToServer();
+    checkCodeWithValidator();
+  });
+  editorInstanceForValidator.on('change', function () {
+    localStorage.setItem('validatorText', editorInstanceForValidator.getValue());
+    refreshresultIFrame(isAutoRunEnabled);
+    sendDataToServer();
+    checkCodeWithValidator();
+  });
+  editorInstanceForAssignment.on('change', function () {
+    localStorage.setItem('assignmentText', editorInstanceForAssignment.getValue());
+    refreshresultIFrame(isAutoRunEnabled);
+    sendDataToServer();
+    checkCodeWithValidator();
+  });
+
+
+  // This is how we start – store editor in localStorage and refresh Result panel
+
+  var isAutoRunEnabled = true;
+  localStorage.setItem('htmlText', editorInstanceForHTML.getValue());
+  localStorage.setItem('cssText', editorInstanceForCSS.getValue());
+  localStorage.setItem('javascriptText', editorInstanceForJS.getValue());
+  localStorage.setItem('validatorText', editorInstanceForValidator.getValue());
+  localStorage.setItem('assignmentText', editorInstanceForAssignment.getValue());
+  refreshresultIFrame(isAutoRunEnabled);
+  sendDataToServer();
+  checkCodeWithValidator();
+
+
+  // Function to refresh the Result panel
+
+  function refreshresultIFrame(isRunningEnabled) {
+
+    // If the running is not enabled (for example autorun is disabled), we return without refreshing the Result panel
+    if (isRunningEnabled == false) {
+      return;
+    }
+
+
+    // Get the iFrame from the DOM
+    var resultIFrame = $('#resultIFrame');
+
+    // Get the HTML+CSS+JS panel content from the localStorage
+    var htmlText = localStorage.getItem('htmlText');
+    var cssText = localStorage.getItem('cssText');
+    var javascriptText = localStorage.getItem('javascriptText');
+    
+    // Concatenate html+css+js+logger into 1 string
+    var resultText = '\<html\>\<head\>\<style\>' + cssText + '\<\/style\>\<\/head\>\<body\>' + htmlText + '\<script\>' + javascriptText + '\<\/script\>\<\/body\>\</html\>';
+
+    // Render the Results panel iframe
+    resultIFrame.contents().find('body').html(resultText);
+  }
+
+
+// Send the panel data to the server via Ajax
+
+function sendDataToServer(){
+
+  // Get HTML+CSS+JS panel content from the localStorage
+  var htmlText = localStorage.getItem('htmlText');
+  var cssText = localStorage.getItem('cssText');
+  var javascriptText = localStorage.getItem('javascriptText');
+  var validatorText = localStorage.getItem('validatorText');
+  var assignmentText = localStorage.getItem('assignmentText');
+
+  // Send HTML+CSS+JS panel data to the server via Ajax
+  $.ajax({
+    url: '/v/save/',
+    type: 'POST',
+    data: {
+      assignmentDefinitionId: '{{assignmentDefinitionId}}',
+      htmlText: htmlText,
+      cssText: cssText,
+      javascriptText: javascriptText,
+      validatorText: validatorText,
+      assignmentText: assignmentText
+    },
+    success: function (data) {
+    }
+  });
+
+}
+
+
+  // Send HTML+CSS+JS data to server, get back validation data, update Validator panel accordingly
+
+  function checkCodeWithValidator() {
+    return;
+  }
+
+
+  // Refresh editors - needed when we show/hide panels, otherwise cursors are off
+
+  function refreshEditors() {
+    editorInstanceForHTML.refresh();
+    editorInstanceForCSS.refresh();
+    editorInstanceForJS.refresh();
+    editorInstanceForValidator.refresh();
+    editorInstanceForAssignment.refresh();
+  }
+</script>
