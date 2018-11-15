@@ -27,7 +27,7 @@
     </div>
   </div>
 </div>
-<input type="hidden" name="codeEditorInstanceId" value="{{codeEditorInstanceId}}" />
+<input type="hidden" name="assignmentDefinitionId" value="{{assignmentDefinitionId}}" />
 <!-- Editor end -->
 
 
@@ -137,12 +137,6 @@
 
     // Render the Results panel iframe
     resultIFrame.contents().find('body').html(resultText);
-
-    // Other version: use the result viewer from the server
-    // resultIFrame.attr('src', '../view/{{codeEditorInstanceId}}');
-
-    // Scroll to bottom of the console
-    // document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
   }
 
 
@@ -162,7 +156,7 @@ function sendDataToServer(){
     url: '/v/save/',
     type: 'POST',
     data: {
-      codeEditorInstanceId: '{{codeEditorInstanceId}}',
+      assignmentDefinitionId: '{{assignmentDefinitionId}}',
       htmlText: htmlText,
       cssText: cssText,
       javascriptText: javascriptText,

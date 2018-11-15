@@ -6,70 +6,35 @@ var randomWords = require('random-words');
 var jquery = require('jquery');
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
-
-/* Init variables */
-
-// We'll store folders+files created by users in here
-var contentFolder = './public/content/editorContent/'; 
-
-// The default content of a new editor instance is here
-var defaultContentFolder = './public/content/defaultEditorContent/';
+var common = require('./common');
 
 
+/* Render the editor-for-the-student page */
 
+router.get('/a/edit/:assignmentDefinitionId/:studentId/', function (req, res) {
 
-/* Render a multifile code editor page */
-
-router.get('/a/edit/:codeEditorInstanceId/', function (req, res) {
-
-  var codeEditorInstanceId = req.params.codeEditorInstanceId;
-
-  // Removing evil stuff from codeEditorInstanceId
-  var codeEditorInstanceIdSafe = codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
+  const assignmentDefinitionId = req.params.assignmentDefinitionId;
+  const studentId = req.params.studentId;
 
   // If something sketchy is going on, redirect to a safe editor URL
-  if (codeEditorInstanceId != codeEditorInstanceIdSafe) {
-    res.redirect('/a/edit/' + codeEditorInstanceIdSafe);
-  } else {
-    codeEditorInstanceId = codeEditorInstanceIdSafe;
+  if (common.checkAssignmentDefinitionIdIntegrity(assignmentDefinitionId)==false) {
+    res.redirect('/a/');
   }
-
-  // If the directory for the editor content does not exist, create it
-  var dir = contentFolder + codeEditorInstanceId + '/';
-  if (!fs.existsSync(dir)) {
-    fs.mkdir(dir, err => {})
+  if (common.checkStudentIdIntegrity(studentId)==false) {
+    res.redirect('/a/');
   }
 
   // If it exists, read the content, otherwise read the default content
-  try {
-    htmlText = fs.readFileSync(dir + 'index.html', 'utf8');
-  } catch (err) {
-    var htmlText = fs.readFileSync(defaultContentFolder + 'index.html', 'utf8');
-  }
-  try {
-    cssText = fs.readFileSync(dir + 'index.css', 'utf8');
-  } catch (err) {
-    var cssText = fs.readFileSync(defaultContentFolder + 'index.css', 'utf8');
-  }
-  try {
-    javascriptText = fs.readFileSync(dir + 'index.js', 'utf8');
-  } catch (err) {
-    var javascriptText = fs.readFileSync(defaultContentFolder + 'index.js', 'utf8');
-  }
-  try {
-    assignmentText = fs.readFileSync(dir + 'assignment.css', 'utf8');
-  } catch (err) {
-    var assignmentText = fs.readFileSync(defaultContentFolder + 'assignment.css', 'utf8');
-  }
-  try {
-    validatorText = fs.readFileSync(dir + 'validator.js', 'utf8');
-  } catch (err) {
-    var validatorText = fs.readFileSync(defaultContentFolder + 'validator.js', 'utf8');
-  }
+  const htmlText = common.getStudentSubmissionContent('index.html', assignmentDefinitionId, studentId);
+  const cssText = common.getStudentSubmissionContent('index.css', assignmentDefinitionId, studentId);
+  const javascriptText = common.getStudentSubmissionContent('index.js', assignmentDefinitionId, studentId);
+  const assignmentText = common.getStudentSubmissionContent('assignment.css', assignmentDefinitionId, studentId);
+  const validatorText = common.getStudentSubmissionContent('validator.js', assignmentDefinitionId, studentId);
 
   // Render page
   res.render('editor-assignment', { 
-    codeEditorInstanceId: codeEditorInstanceId,
+    assignmentDefinitionId: assignmentDefinitionId,
+    studentId: studentId,
     htmlText: htmlText,
     cssText: cssText,
     javascriptText: javascriptText,
@@ -83,40 +48,20 @@ router.get('/a/edit/:codeEditorInstanceId/', function (req, res) {
 
 router.post('/a/save/', function(req, res, next) {
 
-  // These are the variables that we recive from the client via Ajax:
-  var response = {
-    codeEditorInstanceId : req.body.codeEditorInstanceId,
-    assignmentText : req.body.assignmentText
-  };
+  const assignmentDefinitionId = req.body.assignmentDefinitionId;
+  const studentId = req.body.studentId;
+  const assignmentText = req.body.assignmentText;
 
-  // Debug
-  // console.log(response);
-
-  // Removing evil stuff from codeEditorInstanceId
-  var codeEditorInstanceIdSafe = response.codeEditorInstanceId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0,255);
-  
-  // If something sketchy is going on, just return, do not save.
-  if (codeEditorInstanceIdSafe != response.codeEditorInstanceId) {
+  // If something sketchy is going on, do not save, just return
+  if (common.checkAssignmentDefinitionIdIntegrity(assignmentDefinitionId)==false) {
     res.end();
-  } else {
-    var codeEditorInstanceId = codeEditorInstanceIdSafe;
+  }
+  if (common.checkStudentIdIntegrity(studentId)==false) {
+    res.end();
   }
 
-  // The directory where we're going to store the files
-  var dir = contentFolder + codeEditorInstanceId + '/';
+  common.saveStudentSubmissionContent(assignmentText, 'assignment.css', assignmentDefinitionId, studentId);
 
-  // If it does not exist, create it
-  if (!fs.existsSync(dir)) {
-    fs.mkdir(dir, err => {})
-  }
-
-  // Old version: we store everything in 1 file
-  // var resultText = '\<html\>\<head\>\<style\>' + req.body.cssText + '\<\/style\>\<\/head\>\<body\>' + req.body.htmlText + '\<script\>' + req.body.javascriptText + '\<\/script\>\<\/body\>\</html\>';
-
-  // New version: we store everything in 3 files
-  fs.writeFileSync(dir + 'assignment.css', response.assignmentText, 'utf-8');
-
-  // Return (no rendering needed, as this is a server side process)
   res.end();
 });
 
@@ -125,23 +70,23 @@ router.post('/a/save/', function(req, res, next) {
 
 router.post('/a/validate/', function(req, res, next) {
 
+  const assignmentDefinitionId = req.body.assignmentDefinitionId;
+  const assignmentText = req.body.assignmentText;
+  htmlText = common.getAssignmentDefinitionContent('index.html', assignmentDefinitionId);
+  cssText = common.getAssignmentDefinitionContent('index.css', assignmentDefinitionId);
+  javascriptText = common.getAssignmentDefinitionContent('index.js', assignmentDefinitionId);
+  validatorText = common.getAssignmentDefinitionContent('validator.js', assignmentDefinitionId);
+
   // Concatenate HTML+CSS+JS into 1 string
-  var resultText = '\<html\>\<head\>\<style\>' + req.body.cssText + req.body.assignmentText + '\<\/style\>\<\/head\>\<body\>' + req.body.htmlText + '\<script\>' + req.body.javascriptText + '\<\/script\>\<\/body\>\</html\>';
+  var resultText = '\<html\>\<head\>\<style\>' + cssText + assignmentText + '\<\/style\>\<\/head\>\<body\>' + htmlText + '\<script\>' + javascriptText + '\<\/script\>\<\/body\>\</html\>';
 
   // Create a virtual DOM using jsdom
   const dom = new JSDOM(resultText);
   const $ = (jquery)(dom.window);
 
-  var dir = contentFolder + req.body.codeEditorInstanceId + '/';
-  try {
-    validatorText = fs.readFileSync(dir + 'validator.js', 'utf8');
-  } catch (err) {
-    var validatorText = fs.readFileSync(defaultContentFolder + 'validator.js', 'utf8');
-  }
-
   // Check validator rule #1
   try {
-    var rule = (eval(validatorText));
+    var rule = (eval(validatorText)); /* FIXME: eval is evil. */
     if (rule) {
       validatorRule1Result = true;
     } else {
@@ -149,6 +94,7 @@ router.post('/a/validate/', function(req, res, next) {
     }
   } catch(e) {
     console.log(e);
+    validatorRule1Result = false;
   }
 
   // Prepare string, that will be returned to the Ajax script, that called this route
@@ -158,28 +104,66 @@ router.post('/a/validate/', function(req, res, next) {
 
   // Return
   res.end(validatorResult);
+});
 
 
-  // Return
-  res.end();
+
+/* Create a new AssignmentDefinition. */
+
+router.get('/a/create-assignment/:assignmentDefinitionId', function(req, res, next) {
+
+  let assignmentDefinitionId = req.params.assignmentDefinitionId;
+  common.createAssignmentDefinition(assignmentDefinitionId);
+
+  res.end("assignment #"+assignmentDefinitionId+" created");
+});
+
+
+/* No student id? We'll create one. */
+
+router.get('/a/edit/:assignmentDefinitionId', function(req, res, next) {
+
+  let assignmentDefinitionId = req.params.assignmentDefinitionId;
+
+  // If something sketchy is going on, redirect to a safe editor URL
+  if (common.checkAssignmentDefinitionIdIntegrity(assignmentDefinitionId)==false) {
+    res.redirect('/a/');
+  }
+
+  const studentId = randomWords({exactly:1, wordsPerString:3, separator:'-'});
+  common.createStudent(studentId);
+  common.createAssignmentForStudent(studentId, assignmentDefinitionId);
+
+  res.redirect('/a/edit/' + assignmentDefinitionId + '/' + studentId);
 });
 
 
 
 
-/* Handling URLs without codeEditorInstanceId, eg. '/', '/edit', '/view' */
+// /* Handling URLs without assignmentDefinitionId, eg. '/', '/edit', '/view' */
 
-function redirectToNewEditorCreaterAssignmentFile(req, res, next) {
+// function redirectToNewEditorCreaterAssignmentFile(req, res, next) {
 
-  // Create new codeEditorInstanceId with 3 random words, separated by '-'
-  var codeEditorInstanceId = randomWords({exactly:1, wordsPerString:3, separator:'-'});
+//   // Create new assignmentDefinitionId with 3 random words, separated by '-'
+//   const assignmentDefinitionId = 1;
+//   const studentId = randomWords({exactly:1, wordsPerString:1, separator:'-'});
 
-  // Redirect to open a new editor
-  res.redirect('/a/edit/' + codeEditorInstanceId);
-};
+//   common.createStudent(studentId);
+//   common.createAssignmentForStudent(studentId, assignmentDefinitionId);
 
-router.get('/a/', redirectToNewEditorCreaterAssignmentFile);
-router.get('/a/edit', redirectToNewEditorCreaterAssignmentFile);
-router.get('/a/view', redirectToNewEditorCreaterAssignmentFile);
+//   // Redirect to open a new editor
+//   res.redirect('/a/edit/' + assignmentDefinitionId + '/' + studentId);
+// };
+
+// router.get('/a/', redirectToNewEditorCreaterAssignmentFile);
+// router.get('/a/edit', redirectToNewEditorCreaterAssignmentFile);
+
+
+/* iFrame demo */
+
+router.get('/a/iframedemo/', function(req, res, next) {
+  res.render('iframedemo', { 
+  });
+});
 
 module.exports = router;

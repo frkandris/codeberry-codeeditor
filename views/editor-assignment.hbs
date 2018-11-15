@@ -22,7 +22,8 @@
   <textarea id="editorForCSS">{{cssText}}</textarea>
   <textarea id="editorForJavascript">{{javascriptText}}</textarea>
 </div>
-<input type="hidden" name="codeEditorInstanceId" value="{{codeEditorInstanceId}}" />
+<input type="hidden" name="assignmentDefinitionId" value="{{assignmentDefinitionId}}" />
+<input type="hidden" name="studentId" value="{{studentId}}" />
 <!-- Editor end -->
 
 
@@ -42,17 +43,22 @@
     "Enter": function() {return editorInstanceForAssignment.PASS;},
   });
 
-  // the line numbers to be "readonly"
+
+  // Make some lines "read only"
   var readOnlyLines = [0,2];
-  // listen for the beforeChange event, test the changed line number, and cancel
   editorInstanceForAssignment.on('beforeChange',function(cm,change) {
     if ( ~readOnlyLines.indexOf(change.from.line) ) {
         change.cancel();
     }
   });
+
+  // Highlight the lines that can be edited
   editorInstanceForAssignment.addLineClass(1, 'background', 'line-focus');
+
+  // Put the cursor to the start position
   editorInstanceForAssignment.focus();
   editorInstanceForAssignment.setCursor({line: 1, ch: 0});
+
 
   // Create bindings – if the editor changes, store content in localStorage and refresh Result iframe
 
@@ -94,36 +100,13 @@
     var javascriptText = localStorage.getItem('javascriptText');
     var assignmentText = localStorage.getItem('assignmentText');
 
-    // Console logging function, that will be called inside in the Result panel, to display console results in the Console panel
-    var loggerFunction = " \
-var log = parent.document.querySelector('#log'); \
-['log','debug','info','warn','error'].forEach(function (verb) { \
-    console[verb] = (function (method, verb, log) { \
-        return function () { \
-            var msg = document.createElement('div'); \
-            msg.classList.add(verb); \
-            msg.textContent = Array.prototype.slice.call(arguments).join(' '); \
-            log.appendChild(msg); \
-        }; \
-    })(console[verb], verb, log); \
-}); \
-window.onerror = function(message, url, linenumber) { \
-	console.error(message); \
-}; \
-";
     
-    // Concatenate html+css+js+logger into 1 string
-    // var resultText = '\<html\>\<head\>\<style\>' + cssText + '\<\/style\>\<\/head\>\<body\>' + htmlText + '\<script\>' + loggerFunction + javascriptText + '\<\/script\>\<\/body\>\</html\>';
+    // Concatenate html+css+js into 1 string
     var resultText = '\<html\>\<head\>\<style\>' + cssText + assignmentText + '\<\/style\>\<\/head\>\<body\>' + htmlText + '\<script\>' + javascriptText + '\<\/script\>\<\/body\>\</html\>';
 
     // Render the Results panel iframe
     resultIFrame.contents().find('body').html(resultText);
 
-    // Other version: use the result viewer from the server
-    // resultIFrame.attr('src', '../view/{{codeEditorInstanceId}}');
-
-    // Scroll to bottom of the console
-    // document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
   }
 
 
@@ -142,7 +125,8 @@ function sendDataToServer(){
     url: '/a/save/',
     type: 'POST',
     data: {
-      codeEditorInstanceId: '{{codeEditorInstanceId}}',
+      assignmentDefinitionId: '{{assignmentDefinitionId}}',
+      studentId: '{{studentId}}',
       assignmentText: assignmentText
     },
     success: function (data) {
@@ -157,9 +141,6 @@ function sendDataToServer(){
   function checkCodeWithValidator() {
 
     // Get HTML+CSS+JS panel content from the localStorage
-    var htmlText = localStorage.getItem('htmlText');
-    var cssText = localStorage.getItem('cssText');
-    var javascriptText = localStorage.getItem('javascriptText');
     var assignmentText = localStorage.getItem('assignmentText');
 
     // Send HTML+CSS+JS panel data to the server via Ajax
@@ -167,10 +148,8 @@ function sendDataToServer(){
       url: '/a/validate/',
       type: 'POST',
       data: {
-        codeEditorInstanceId: '{{codeEditorInstanceId}}',
-        htmlText: htmlText,
-        cssText: cssText,
-        javascriptText: javascriptText,
+        assignmentDefinitionId: '{{assignmentDefinitionId}}',
+        studentId: '{{studentId}}',
         assignmentText: assignmentText
       },
       // Get back code validation data
